@@ -4,8 +4,8 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 # Recupera i token dalle variabili d'ambiente
-TELEGRAM_TOKEN = os.getenv("8448591154:AAEJorp4NLnox6coY3zaB9iRu5p0h2jTLss")
-FOOTBALL_API_KEY = os.getenv("437bdfc679224878ad25e2d8cff723a0")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+FOOTBALL_API_KEY = os.getenv("FOOTBALL_API_KEY")
 
 BASE_URL = "https://api.football-data.org/v4"
 
