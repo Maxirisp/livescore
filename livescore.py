@@ -41,7 +41,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "🇮🇹 **Benvenuto nel Bot sulla Serie A!** 🇮🇹\n\n"
         "Dati forniti da football-data.org.\n\n"
         "Usa questi comandi:\n\n"
-        "📅 `/oggi` - Mostra le partite in programma oggi.\n"
         "🔴 `/live` - Mostra le partite in corso adesso.\n"
         "📊 `/classifica` - La classifica aggiornata.\n"
         "🗓 `/calendario` - Le prossime 5 partite in programma.\n"
@@ -62,8 +61,7 @@ async def oggi(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         all_match_lines = []
         for match in data['matches']:
             home_team = match['homeTeam']['name']
-            # L'ERRORE ERA QUI: 'awayTeam' è la chiave corretta, non 'away_team'
-            away_team = match['awayTeam']['name'] 
+            away_team = match['away_team']['name']
             
             time_utc = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
             time_local = time_utc + timedelta(hours=2) # Da UTC a CEST
@@ -85,7 +83,7 @@ async def oggi(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             current_message += line
             
         # Invia l'ultimo messaggio rimasto (o l'unico, se la lista era corta)
-        if current_message and current_message != header:
+        if current_message != header:
              await update.message.reply_text(current_message, parse_mode='Markdown')
         # -------------------------------------------
 
@@ -176,7 +174,6 @@ def main() -> None:
         
     application = Application.builder().token(TELEGRAM_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("oggi", oggi))
     application.add_handler(CommandHandler("classifica", classifica))
     application.add_handler(CommandHandler("calendario", calendario))
     application.add_handler(CommandHandler("marcatori", marcatori))
@@ -184,6 +181,9 @@ def main() -> None:
     
     print("Bot Serie A (football-data.org) avviato...")
     application.run_polling()
+
+if __name__ == '__main__':
+    main()
 
 if __name__ == '__main__':
     main()
