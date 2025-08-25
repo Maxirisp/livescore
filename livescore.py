@@ -48,48 +48,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
     await update.message.reply_text(welcome_text, parse_mode='Markdown')
 
-async def oggi(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Mostra tutte le partite in programma per la data corrente, gestendo messaggi lunghi."""
-    today_str = datetime.now().strftime('%Y-%m-%d')
-    await update.message.reply_text(f"📅 Sto cercando le partite di oggi ({today_str})...")
-    
-    data = fetch_api(f"competitions/{SERIE_A_CODE}/matches?date={today_str}")
-
-    if data and data.get('matches'):
-        # --- LOGICA AGGIORNATA PER MESSAGGI LUNGHI ---
-        
-        all_match_lines = []
-        for match in data['matches']:
-            home_team = match['homeTeam']['name']
-            away_team = match['away_team']['name']
-            
-            time_utc = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
-            time_local = time_utc + timedelta(hours=2) # Da UTC a CEST
-            time_str = time_local.strftime('%H:%M')
-
-            # Creiamo una riga per ogni partita
-            all_match_lines.append(f"▪️ {home_team} vs {away_team} `(ore {time_str})`\n")
-
-        # Ora costruiamo i messaggi, assicurandoci che non superino il limite
-        header = "⚽ **Partite di Serie A di oggi** ⚽\n\n"
-        current_message = header
-        
-        for line in all_match_lines:
-            # Se aggiungere la nuova riga supera il limite, invia il messaggio attuale e iniziane uno nuovo
-            if len(current_message) + len(line) > 4096:
-                await update.message.reply_text(current_message, parse_mode='Markdown')
-                current_message = "" # Reset per il prossimo messaggio
-            
-            current_message += line
-            
-        # Invia l'ultimo messaggio rimasto (o l'unico, se la lista era corta)
-        if current_message != header:
-             await update.message.reply_text(current_message, parse_mode='Markdown')
-        # -------------------------------------------
-
-    else:
-        await update.message.reply_text("Nessuna partita di Serie A in programma per oggi.")
-
 async def classifica(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("📊 Sto caricando la classifica...")
     data = fetch_api(f"competitions/{SERIE_A_CODE}/standings")
