@@ -142,10 +142,18 @@ def main() -> None:
     if not TELEGRAM_TOKEN or not API_FOOTBALL_KEY:
         print("Errore: Assicurati che TELEGRAM_TOKEN e API_FOOTBALL_KEY siano impostati.")
         return
-        
+
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
     # Registrazione dei comandi
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("classifica", classifica))
-    application.add_handler(CommandHandler("calend
+    application.add_handler(CommandHandler("calendario", calendario))
+    application.add_handler(CommandHandler("marcatori", marcatori))
+    application.add_handler(CommandHandler("live", live))
+
+    print("Bot Serie A avviato...")
+    application.run_polling()
+
+if __name__ == '__main__':
+    main()
