@@ -17,6 +17,7 @@ API_FOOTBALL_KEY = os.environ.get('API_FOOTBALL_KEY')
 # ID fisso per la Serie A e fuso orario italiano
 SERIE_A_ID = 135
 ITALY_TZ = pytz.timezone('Europe/Rome')
+# Prendiamo la stagione corrente per i comandi che la richiedono obbligatoriamente
 CURRENT_SEASON = datetime.now(ITALY_TZ).year
 
 API_HOST = 'v3.football.api-sports.io'
@@ -30,10 +31,12 @@ HEADERS = {
 def fetch_api(endpoint, params=None):
     """Esegue una richiesta all'API di API-Football e gestisce la risposta."""
     try:
+        print(f"Chiamata API a {endpoint} con parametri: {params}") # Riga di debug
         response = requests.get(f"{API_URL}/{endpoint}", headers=HEADERS, params=params)
         response.raise_for_status()
         data = response.json()
         if data.get('response'):
+            print(f"API ha risposto con {data.get('results')} risultati.") # Riga di debug
             return data
         else:
             print(f"Errore nella risposta API: {data.get('errors')}")
@@ -48,7 +51,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Messaggio di benvenuto con la lista dei comandi."""
     welcome_text = (
         "🇮🇹 **Benvenuto nel Bot sulla Serie A!** 🇮🇹\n\n"
-        "Tutte le informazioni si riferiscono alla stagione in corso.\n\n"
+        "Tutte le informazioni si riferiscono alla stagione in corso.\n"
+        "*(Nota: Classifica e Marcatori potrebbero non essere disponibili all'inizio della stagione)*\n\n"
         "Usa questi comandi:\n\n"
         "📅 `/oggi` - Mostra le partite in programma oggi.\n"
         "🔴 `/live` - Mostra solo le partite in corso adesso.\n"
@@ -63,36 +67,31 @@ async def oggi(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     today_str = datetime.now(ITALY_TZ).strftime('%Y-%m-%d')
     await update.message.reply_text(f"📅 Sto cercando le partite di oggi ({today_str})...")
     
-    params = {'league': SERIE_A_ID, 'season': CURRENT_SEASON, 'date': today_str}
+    # MODIFICA CHIAVE: Rimuoviamo 'season' per rendere la richiesta più flessibile
+    params = {'league': SERIE_A_ID, 'date': today_str}
     data = fetch_api("fixtures", params=params)
 
     if data and data['results'] > 0:
         message = f"⚽ **Partite di Serie A di oggi** ⚽\n\n"
+        # ... (il resto del codice rimane uguale)
         for fixture in data['response']:
             home = fixture['teams']['home']['name']
             away = fixture['teams']['away']['name']
             status = fixture['fixture']['status']['short']
-            
-            # Formatta l'orario nel fuso orario italiano
             time_utc = datetime.fromisoformat(fixture['fixture']['date'])
             time_italy = time_utc.astimezone(ITALY_TZ)
             time_str = time_italy.strftime('%H:%M')
-
-            if status == 'NS': # Not Started
-                score_or_time = f"*{time_str}*"
-            elif status == 'FT': # Finished
-                score_or_time = f"{fixture['goals']['home']} - {fixture['goals']['away']} (Finita)"
-            else: # Live
-                score_or_time = f"{fixture['goals']['home']} - {fixture['goals']['away']} `({fixture['fixture']['status']['elapsed']}')`"
-
+            if status == 'NS': score_or_time = f"*{time_str}*"
+            elif status == 'FT': score_or_time = f"{fixture['goals']['home']} - {fixture['goals']['away']} (Finita)"
+            else: score_or_time = f"{fixture['goals']['home']} - {fixture['goals']['away']} `({fixture['fixture']['status']['elapsed']}')`"
             message += f"▪️ {home} vs {away}  `{score_or_time}`\n"
         await update.message.reply_text(message, parse_mode='Markdown')
     else:
         await update.message.reply_text(f"Nessuna partita di Serie A in programma per oggi.")
 
 async def classifica(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # ... (questa funzione rimane invariata)
     await update.message.reply_text("📊 Sto caricando la classifica...")
+    # 'season' qui è obbligatorio, quindi lo manteniamo
     params = {'league': SERIE_A_ID, 'season': CURRENT_SEASON}
     data = fetch_api("standings", params=params)
     if data and data['results'] > 0 and data['response']:
@@ -104,12 +103,12 @@ async def classifica(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             message += f"`{pos}. {name} {points} {played}`\n"
         await update.message.reply_text(message, parse_mode='Markdown')
     else:
-        await update.message.reply_text("Impossibile trovare la classifica.")
+        await update.message.reply_text("Classifica non ancora disponibile per la nuova stagione.")
 
 async def prossime(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # ... (rinominato da /calendario a /prossime)
     await update.message.reply_text("🗓 Sto cercando le prossime partite...")
-    params = {'league': SERIE_A_ID, 'season': CURRENT_SEASON, 'next': 5}
+    # MODIFICA CHIAVE: Rimuoviamo 'season' anche qui
+    params = {'league': SERIE_A_ID, 'next': 5}
     data = fetch_api("fixtures", params=params)
     if data and data['results'] > 0:
         message = f"📅 **Prossime 5 Partite di Serie A** 📅\n\n"
@@ -124,8 +123,8 @@ async def prossime(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("Nessuna partita trovata in programma.")
 
 async def marcatori(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # ... (questa funzione rimane invariata)
     await update.message.reply_text("⚽️ Sto caricando la classifica marcatori...")
+    # 'season' qui è obbligatorio, quindi lo manteniamo
     params = {'league': SERIE_A_ID, 'season': CURRENT_SEASON}
     data = fetch_api("players/topscorers", params=params)
     if data and data['results'] > 0:
@@ -136,11 +135,11 @@ async def marcatori(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             message += f"*{i}.* {name} (*{team}*) - **{goals}** gol\n"
         await update.message.reply_text(message, parse_mode='Markdown')
     else:
-        await update.message.reply_text("Impossibile recuperare la classifica marcatori.")
+        await update.message.reply_text("Classifica marcatori non ancora disponibile per la nuova stagione.")
 
 async def live(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # ... (questa funzione rimane invariata)
     await update.message.reply_text("🔴 Sto cercando le partite in corso...")
+    # Questo comando non usa 'season' ed è per questo che ha sempre funzionato
     params = {'league': SERIE_A_ID, 'live': 'all'}
     data = fetch_api("fixtures", params=params)
     if data and data['results'] > 0:
@@ -153,21 +152,16 @@ async def live(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("Nessuna partita della Serie A è in corso in questo momento.")
 
 def main() -> None:
-    """Funzione principale per avviare il bot."""
     if not TELEGRAM_TOKEN or not API_FOOTBALL_KEY:
         print("Errore: Assicurati che TELEGRAM_TOKEN e API_FOOTBALL_KEY siano impostati.")
         return
-        
     application = Application.builder().token(TELEGRAM_TOKEN).build()
-
-    # Registrazione dei comandi
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("oggi", oggi))
     application.add_handler(CommandHandler("classifica", classifica))
     application.add_handler(CommandHandler("prossime", prossime))
     application.add_handler(CommandHandler("marcatori", marcatori))
     application.add_handler(CommandHandler("live", live))
-    
     print("Bot Serie A avviato...")
     application.run_polling()
 
