@@ -150,13 +150,24 @@ async def live(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         for match in data['matches']:
             home_team = match['homeTeam']['name']
             away_team = match['awayTeam']['name']
-            score_home = match['score']['fullTime']['home']
-            score_away = match['score']['fullTime']['away']
+            
+            # Controlla se il punteggio è disponibile, altrimenti metti 0
+            score = match.get('score', {}).get('fullTime', {})
+            score_home = score.get('home', 0)
+            score_away = score.get('away', 0)
+            
+            # La nuova API usa 'status' per i minuti, non 'minute'
+            status = match.get('status')
+            minute_str = ""
+            if status == 'IN_PLAY':
+                # Potrebbe essere utile aggiungere i minuti se disponibili in futuro
+                pass
+
             message += f"▪️ {home_team} **{score_home} - {score_away}** {away_team}\n"
+
         await update.message.reply_text(message, parse_mode='Markdown')
     else:
         await update.message.reply_text("Nessuna partita della Serie A è in corso in questo momento.")
-
 def main() -> None:
     if not TELEGRAM_TOKEN or not FOOTBALL_DATA_TOKEN:
         print("Errore: Assicurati che TELEGRAM_TOKEN e FOOTBALL_DATA_TOKEN siano impostati.")
