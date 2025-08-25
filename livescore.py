@@ -62,7 +62,8 @@ async def oggi(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         all_match_lines = []
         for match in data['matches']:
             home_team = match['homeTeam']['name']
-            away_team = match['away_team']['name']
+            # L'ERRORE ERA QUI: 'awayTeam' è la chiave corretta, non 'away_team'
+            away_team = match['awayTeam']['name'] 
             
             time_utc = datetime.fromisoformat(match['utcDate'].replace('Z', '+00:00'))
             time_local = time_utc + timedelta(hours=2) # Da UTC a CEST
@@ -84,7 +85,7 @@ async def oggi(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             current_message += line
             
         # Invia l'ultimo messaggio rimasto (o l'unico, se la lista era corta)
-        if current_message != header:
+        if current_message and current_message != header:
              await update.message.reply_text(current_message, parse_mode='Markdown')
         # -------------------------------------------
 
